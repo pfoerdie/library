@@ -6,11 +6,11 @@ const // packages
 
 const // constants
     _define = (obj, key, val) => Object.defineProperty(obj, key, { value: val }),
-    _defineGetter = (obj, key, getter) => Object.defineProperty(obj, key, { get: getter }),
     _defineFn = (obj, key, fn) => Object.defineProperty(obj, key, { value: fn.bind(obj) }),
     _enumerate = (obj, key, val) => Object.defineProperty(obj, key, { value: val, enumerable: true }),
+    _enumerateGetter = (obj, key, getter) => Object.defineProperty(obj, key, { get: getter, enumerable: true }),
     _promify = (fn, ...args) => new Promise((resolve, reject) => fn(...args, (err, result) => err ? reject(err) : resolve(result))),
-    _splitID = (str) => str.split(/\.(?!\d)/).slice(1);
+    _splitID = (str) => str.split(/\.(?!\d)/);
 
 const // defaults
     _globalKey = 'lib',
@@ -228,21 +228,24 @@ _defineFn(Library, 'loadEntry', async function (id) {
 }); // Library.loadEntry
 
 //#endregion LIBRARY
-//#region EXPORTS
+//#region SETUP
 
-function _integrate(entry) {
-    let
-        path = _splitID(entry.id),
-        key = path.pop();
+let
+    _ready = false,
+    _readyPromise = Library.loadAvailable(),
+    _integrate = (entry) => {
+        let
+            path = _splitID(entry.id),
+            key = path.pop();
 
-    if (path.length > 0) return;
+        if (path.length === 0) return;
 
-    let parent = Library.getEntry(path.join("."));
-    if (!parent || parent.type !== "Package")
-        throw new Error(`Package ${parent} has not been found`);
+        let parent = Library.getEntry(path.join("."));
+        if (!parent || parent.type !== "Package")
+            throw new Error(`Package ${parent} has not been found`);
 
-    parent.add(key, entry);
-} // _integrate
+        parent.add(key, entry);
+    }; // _integrate
 
 Library.defineType("Package", class Package {
 
@@ -264,12 +267,12 @@ Library.defineType("Package", class Package {
 
             case "Package":
             case "Script":
-                _define(this.exports, key, child.exports);
+                _enumerate(this.exports, key, child.exports);
                 break;
 
             case "Alias":
             case "Module":
-                _defineGetter(this.exports, key, () => child.exports);
+                _enumerateGetter(this.exports, key, () => child.exports || null);
                 break;
 
             default:
@@ -293,9 +296,11 @@ Library.defineType("Package", class Package {
     async load() {
         if (this.loaded) return this.exports;
         let target = await Library.loadEntry(this.target);
-        if (!target || !target.type !== "Module") return null;
-        let moduleExport = await target.load();
-        if (!target.loaded) return;
+        if (!target) return null;
+        let moduleExport = target.loaded
+            ? target.exports
+            : await target.load();
+        if (!target.loaded) return null;
         this.loaded = true;
         this.exports = moduleExport;
     } // Alias#load
@@ -352,13 +357,17 @@ Library.defineType("Package", class Package {
     '@type': "Script",
     '@id': `${_globalKey}.get`,
     '@value': function get(id) {
-
+        let result = Library.getEntry(id);
+        return result ? result.exports : null;
     }
 }).addConfig({
     '@type': "Script",
     '@id': `${_globalKey}.load`,
-    '@value': async function load(idArr) {
-
+    '@value': async function load(...idArr) {
+        if (!_ready) await _readyPromise;
+        let resultArr = await Promise.all(idArr.map(Library.loadEntry));
+        await Promise.all(resultArr.filter(val => val).map(elem => elem.load()));
+        return resultArr.map(elem => elem ? elem.exports : null);
     }
 }).makeEntries(
     _globalKey,
@@ -366,9 +375,21 @@ Library.defineType("Package", class Package {
     `${_globalKey}.load`
 );
 
+_readyPromise.then(function () {
+    _ready = true;
+    if (process.env.NODE_ENV !== 'production') {
+        console.log(`finished initial loading of ${_globalKey}, available entries: ${Library.getAvailable().join(", ")}`);
+    }
+});
+
+//#endregion SETUP
+//#region EXPORTS
+
 if (Reflect.has(global, _globalKey)) throw new Error(`the global key ${_globalKey} is already defined`);
 let _entryPoint = Library.getEntry(_globalKey);
 _define(global, _globalKey, _entryPoint.exports);
 module.exports = _entryPoint.exports;
 
 //#endregion EXPORTS
+
+
