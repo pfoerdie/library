@@ -1,0 +1,21 @@
+{
+    "@context": "Library",
+    "@graph": [
+        {
+            "@type": "Module",
+            "@id": "lib.core.hrt:0.1.0",
+            "path": "./src/hrt_0.1.0.js",
+            "requires": []
+        },
+        {
+            "@type": "Alias",
+            "@id": "lib.core.hrt:latest",
+            "target": "lib.core.hrt:0.1.0"
+        },
+        {
+            "@type": "Alias",
+            "@id": "lib.core.hrt",
+            "target": "lib.core.hrt:latest"
+        }
+    ]
+}

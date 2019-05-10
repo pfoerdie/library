@@ -15,7 +15,7 @@ const // constants
 const // defaults
     _globalKey = 'lib',
     _context = "Library",
-    _directory = Path.join(__dirname, "../Library", _globalKey),
+    _directory = Path.join(__dirname, _globalKey),
     _searchDepth = 3,
     _validFilename = (val) => val === "config.json",
     _validFoldername = (val) => val !== "src" && !val.startsWith(".");
@@ -358,7 +358,7 @@ Library.defineType("Package", class Package {
     '@id': `${_globalKey}.get`,
     '@value': function get(id) {
         let result = Library.getEntry(id);
-        return result ? result.exports : null;
+        return result && result.loaded ? result.exports : null;
     }
 }).addConfig({
     '@type': "Script",
@@ -366,7 +366,7 @@ Library.defineType("Package", class Package {
     '@value': async function load(...idArr) {
         if (!_ready) await _readyPromise;
         let resultArr = await Promise.all(idArr.map(Library.loadEntry));
-        await Promise.all(resultArr.filter(val => val).map(elem => elem.load()));
+        await Promise.all(resultArr.filter(val => val && !val.loaded).map(elem => elem.load()));
         return resultArr.map(elem => elem ? elem.exports : null);
     }
 }).makeEntries(
@@ -378,7 +378,7 @@ Library.defineType("Package", class Package {
 _readyPromise.then(function () {
     _ready = true;
     if (process.env.NODE_ENV !== 'production') {
-        console.log(`finished initial loading of ${_globalKey}, available entries: ${Library.getAvailable().join(", ")}`);
+        console.log(`Initial loading of library ${_globalKey} is finished.\nAvailable entries:`, Library.getAvailable());
     }
 });
 
