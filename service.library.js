@@ -184,7 +184,9 @@ exports.Router = function (/* arguments */) {
     Router.get('/available.json', async function (request, response) {
         try {
             if (!_ready) await _readyPromise;
-            response.type('json').send(Library.getAvailable());
+            response.type('json').send({
+                [_context]: Library.getAvailable()
+            });
         } catch (err) {
             response.sendStatus(500);
         }
