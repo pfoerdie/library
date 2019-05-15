@@ -4,7 +4,7 @@
         {
             "@type": "Module",
             "@id": "lib.core.event:0.1.0",
-            "path": "./src/event_0.1.0.js",
+            "path": "./src/web.event_0.1.0.js",
             "requires": [
                 "lib.core.hrt:0.1.0"
             ]
