@@ -15,12 +15,13 @@ const // constants
 const // defaults
     _globalKey = 'lib',
     _context = "Library",
-    _directory = Path.join(__dirname, _globalKey),
+    _directory = Path.join(__dirname, "lib"),
     _searchDepth = 3,
     _validFilename = (val) => val === "config.json",
     _validFoldername = (val) => val !== "src" && !val.startsWith(".");
 
 //#endregion CONSTANTS
+
 //#region LIBRARY
 
 /** @name Library */
@@ -228,6 +229,7 @@ _defineFn(Library, 'loadEntry', async function (id) {
 }); // Library.loadEntry
 
 //#endregion LIBRARY
+
 //#region SETUP
 
 let
@@ -383,6 +385,7 @@ _readyPromise.then(function () {
 });
 
 //#endregion SETUP
+
 //#region EXPORTS
 
 if (Reflect.has(global, _globalKey)) throw new Error(`the global key ${_globalKey} is already defined`);
@@ -391,5 +394,3 @@ _define(global, _globalKey, _entryPoint.exports);
 module.exports = _entryPoint.exports;
 
 //#endregion EXPORTS
-
-

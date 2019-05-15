@@ -7,6 +7,6 @@ let
     app = Express(),
     server = Http.createServer(app);
 
-app.use(ExpressLibrary);
+app.use(ExpressLibrary.Router());
 
 server.listen(80, () => console.log("running"));
