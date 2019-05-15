@@ -8,10 +8,9 @@ const // packages
 const // constants
     _define = (obj, key, val) => Object.defineProperty(obj, key, { value: val }),
     _defineFn = (obj, key, fn) => Object.defineProperty(obj, key, { value: fn.bind(obj) }),
-    _enumerate = (obj, key, val) => Object.defineProperty(obj, key, { value: val, enumerable: true }),
-    _enumerateGetter = (obj, key, getter) => Object.defineProperty(obj, key, { get: getter, enumerable: true }),
     _promify = (fn, ...args) => new Promise((resolve, reject) => fn(...args, (err, result) => err ? reject(err) : resolve(result))),
-    _splitID = (str) => str.split(/\.(?!\d)/);
+    _RE_pathToUrl = new RegExp("\\" + Path.sep, "g"),
+    _pathToUrl = (path) => path.replace(_RE_pathToUrl, "/");
 
 const // defaults
     _globalKey = 'lib',
@@ -134,7 +133,12 @@ _defineFn(Library, 'loadAvailable', async function () {
                 : dirPaths.filter((path, index) => contentStats[index].isDirectory() && _validFoldername(dirContent[index])),
             fileBuffers = await Promise.all(availableFiles.map(path => _promify(Fs.readFile, path))),
             configFiles = fileBuffers
-                .map(buffer => JSON.parse(buffer.toString(), (key, value) => key === 'path' ? Path.join(directory, value) : value))
+                .map(buffer => JSON.parse(buffer.toString(), (key, value) => {
+                    if (key !== 'path') return value;
+                    let absPath = Path.join(directory, value);
+                    let relPath = Path.relative(_directory, absPath);
+                    return _pathToUrl(relPath);
+                }))
                 .filter(file => file && file['@context'] === _context),
             configArr = [];
 
@@ -164,7 +168,7 @@ _defineFn(Library, 'loadAvailable', async function () {
 
 let
     _ready = false,
-    _readyPromise = Library.loadAvailable(); // _integrate
+    _readyPromise = Library.loadAvailable();
 
 _readyPromise.then(function () {
     _ready = true;

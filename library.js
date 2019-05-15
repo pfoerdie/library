@@ -10,7 +10,8 @@ const // constants
     _enumerate = (obj, key, val) => Object.defineProperty(obj, key, { value: val, enumerable: true }),
     _enumerateGetter = (obj, key, getter) => Object.defineProperty(obj, key, { get: getter, enumerable: true }),
     _promify = (fn, ...args) => new Promise((resolve, reject) => fn(...args, (err, result) => err ? reject(err) : resolve(result))),
-    _splitID = (str) => str.split(/\.(?!\d)/);
+    _RE_splitID = /\.(?!\d)/,
+    _splitID = (str) => str.split(_RE_splitID);
 
 const // defaults
     _globalKey = 'lib',

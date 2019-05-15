@@ -1,0 +1,18 @@
+{
+    "@context": "Web-Library",
+    "@graph": [
+        {
+            "@type": "Module",
+            "@id": "lib.core.event:0.1.0",
+            "path": "./src/event_0.1.0.js",
+            "requires": [
+                "lib.core.hrt:0.1.0"
+            ]
+        },
+        {
+            "@type": "Alias",
+            "@id": "lib.core.event:latest",
+            "target": "lib.core.event:0.1.0"
+        }
+    ]
+}

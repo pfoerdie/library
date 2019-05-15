@@ -1,0 +1,17 @@
+{
+    "@context": "Web-Library",
+    "@graph": [
+        {
+            "@type": "Package",
+            "@id": "lib.core"
+        },
+        {
+            "@type": "Package",
+            "@id": "lib.module"
+        },
+        {
+            "@type": "Package",
+            "@id": "lib.agent"
+        }
+    ]
+}
