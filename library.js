@@ -338,7 +338,7 @@ Library.defineType("Package", class Package {
         let moduleExport = require(this.path);
         this.exports = moduleExport;
         this.loaded = true;
-        return moduleExport;
+        return this.exports;
     } // Module#load
 
 }).defineType("Script", class Script {
@@ -370,7 +370,7 @@ Library.defineType("Package", class Package {
         if (!_ready) await _readyPromise;
         let resultArr = await Promise.all(idArr.map(Library.loadEntry));
         await Promise.all(resultArr.filter(val => val && !val.loaded).map(elem => elem.load()));
-        return resultArr.map(elem => elem ? elem.exports : null);
+        return resultArr.map(elem => elem && elem.loaded ? elem.exports : null);
     }
 }).makeEntries(
     _globalKey,
@@ -389,7 +389,8 @@ _readyPromise.then(function () {
 
 //#region EXPORTS
 
-if (Reflect.has(global, _globalKey)) throw new Error(`the global key ${_globalKey} is already defined`);
+if (Reflect.has(global, _globalKey))
+    throw new Error(`the global key ${_globalKey} is already defined`);
 let _entryPoint = Library.getEntry(_globalKey);
 _define(global, _globalKey, _entryPoint.exports);
 module.exports = _entryPoint.exports;
