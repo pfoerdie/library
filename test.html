@@ -12,8 +12,8 @@
 <body>
     <script>
         (async (/* async closure */) => {
-            await lib.load('lib.core.hrt:0.1.0');
-            console.log(lib.get('lib.core.hrt:0.1.0'));
+            await lib.load('lib.core.hrt');
+            console.log(lib.core);
         })(/* async closure */).catch(console.error);
     </script>
 </body>

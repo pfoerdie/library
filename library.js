@@ -306,6 +306,7 @@ Library.defineType("Package", class Package {
         if (!target.loaded) return null;
         this.loaded = true;
         this.exports = moduleExport;
+        return this.exports;
     } // Alias#load
 
 }).defineType("Module", class Module {
