@@ -1,5 +1,5 @@
 ((/* closure */) => {
-    
+
     // TODO
 
     //#region CONSTANTS
@@ -56,6 +56,12 @@
     _define(Library, '_configs', new Map());
 
     /**
+     * @name Library._loadingConfigs 
+     * @type {Map<Config#@id, Promise<Config>>}
+     */
+    _define(Library, '_loadingConfigs', new Map());
+
+    /**
      * @name Library._entries 
      * @type {Map<Config#@id, Object>}
      */
@@ -80,7 +86,7 @@
      */
     _defineFn(Library, 'addConfig', function (...configArr) {
         configArr = configArr.filter(Library.validConfig);
-        let existing = configArr.filter(config => this._available.has(config['@id']));
+        let existing = configArr.filter(config => this._configs.has(config['@id']));
         if (existing.length > 0)
             throw new Error(`the following configs are already defined:\n  ${existing.map(config => config['@id']).join("\n  ")}`);
         configArr.forEach(config => {
@@ -108,10 +114,31 @@
     _defineFn(Library, 'loadConfig', async function (id) {
         if (this._configs.has(id))
             return this._configs.get(id);
-        // TODO
-        if (this._available.has(id))
-            throw new Error("loading available configs is not implemented");
-        return null;
+        let loadingPromise = this._loadingConfigs.get(id);
+        if (!loadingPromise) {
+            loadingPromise = (async (/* async closure */) => {
+                let
+                    path = _splitID(id),
+                    idArr = path.reduce((result, segment) => {
+                        if (result.length === 0)
+                            result.push(segment);
+                        else
+                            result.push(result[result.length - 1] + "." + segment);
+                        return result;
+                    }, []).filter(id => !this._configs.has(id)),
+                    result = await fetch(_location + `config.json?id=${idArr.join("&id=")}`),
+                    json = await result.json();
+
+                if (!json['@context'] === _context)
+                    throw new Error(`invalid context ${json['@context']}`);
+                if (Array.isArray(json['@graph']))
+                    this.addConfig(...(json['@graph']));
+                return this.getConfig(id);
+            })(/* async closure */);
+            loadingPromise.finally(() => { this._loadingConfigs.delete(id); });
+            this._loadingConfigs.set(id, loadingPromise);
+        }
+        return await loadingPromise;
     }); // Library.loadConfig
 
     /**
@@ -131,13 +158,15 @@
      * @async
      */
     _defineFn(Library, 'loadAvailable', async function () {
-        let response = await fetch('/available.json');
-        if (!response || !response.ok) throw new Error("available could not be loaded");
+        let response = await fetch(_location + 'available.json');
+        if (!response || !response.ok)
+            throw new Error("available could not be loaded");
         let result = await response.json();
-        if (!Array.isArray(result[_context])) throw new Error("unexpected answer for available request");
+        if (!Array.isArray(result[_context]))
+            throw new Error("unexpected answer for available request");
         for (let id of result[_context]) {
             if (this._regexID.test(id))
-                this._available.add(id)
+                this._available.add(id);
         }
     }); // Library.loadAvailable
 
@@ -292,26 +321,41 @@
             this.path = config['path'];
             this.requires = config['requires'] || [];
             this.loaded = false;
+            this.loadingPromise = null;
             _integrate(this);
         } // Module#constructor
 
         async load() {
             if (this.loaded) return this.exports;
+            if (!this.loadingPromise) {
+                this.loadingPromise = (async (/* async closure */) => {
+                    let _dependencies = await Promise.all(this.requires.map(id => Library.loadEntry(id)));
+                    if (!_dependencies.every(val => val))
+                        throw new Error("dependencies not complete");
 
-            let _dependencies = await Promise.all(this.requires.map(id => Library.loadEntry(id)));
-            if (!_dependencies.every(val => val))
-                throw new Error("dependencies not complete");
+                    await Promise.all(_dependencies.filter(val => !val.loaded).map(val => val.load()));
+                    if (!_dependencies.every(val => val.loaded))
+                        throw new Error("dependencies not loaded");
 
-            await Promise.all(_dependencies.filter(val => !val.loaded).map(val => val.load()));
-            if (!_dependencies.every(val => val.loaded))
-                throw new Error("dependencies not loaded");
+                    let moduleExport = await import(_location + _globalKey + "/" + this.path);
+                    if (Object.keys(moduleExport).length === 1) {
+                        if (Reflect.has(moduleExport, 'default')) {
+                            this.exports = moduleExport['default'];
+                        } else {
+                            delete moduleExport['default'];
+                            this.exports = moduleExport;
+                        }
+                    } else {
+                        this.exports = moduleExport;
+                    }
+                    this.loaded = true;
+                    return this.exports;
+                })(/* async closure */);
 
-            if (this.loaded) return this.exports;
-            let moduleExport = await import(this.path);
-            this.exports = Reflect.has(moduleExport, 'default')
-                ? moduleExport['default'] : moduleExport;
-            this.loaded = true;
-            return this.exports;
+                this.loadingPromise.finally(() => { this.loadingPromise = null; });
+            }
+
+            return await this.loadingPromise;
         } // Module#load
 
     }).defineType("Script", class Script {

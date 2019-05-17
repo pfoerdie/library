@@ -83,7 +83,7 @@ _defineFn(Library, 'validConfig', function (config) {
  */
 _defineFn(Library, 'addConfig', function (...configArr) {
     configArr = configArr.filter(Library.validConfig);
-    let existing = configArr.filter(config => this._available.has(config['@id']));
+    let existing = configArr.filter(config => this._configs.has(config['@id']));
     if (existing.length > 0)
         throw new Error(`the following configs are already defined:\n  ${existing.map(config => config['@id']).join("\n  ")}`);
     configArr.forEach(config => {
@@ -320,25 +320,32 @@ Library.defineType("Package", class Package {
         this.path = config['path'];
         this.requires = config['requires'] || [];
         this.loaded = false;
+        this.loadingPromise = null;
         _integrate(this);
     } // Module#constructor
 
     async load() {
         if (this.loaded) return this.exports;
+        if (!this.loadingPromise) {
+            this.loadingPromise = (async (/* async closure */) => {
+                let _dependencies = await Promise.all(this.requires.map(id => Library.loadEntry(id)));
+                if (!_dependencies.every(val => val))
+                    throw new Error("dependencies not complete");
 
-        let _dependencies = await Promise.all(this.requires.map(id => Library.loadEntry(id)));
-        if (!_dependencies.every(val => val))
-            throw new Error("dependencies not complete");
+                await Promise.all(_dependencies.filter(val => !val.loaded).map(val => val.load()));
+                if (!_dependencies.every(val => val.loaded))
+                    throw new Error("dependencies not loaded");
 
-        await Promise.all(_dependencies.filter(val => !val.loaded).map(val => val.load()));
-        if (!_dependencies.every(val => val.loaded))
-            throw new Error("dependencies not loaded");
+                let moduleExport = require(this.path);
+                this.exports = moduleExport;
+                this.loaded = true;
+                return this.exports;
+            })(/* async closure */);
 
-        if (this.loaded) return this.exports;
-        let moduleExport = require(this.path);
-        this.exports = moduleExport;
-        this.loaded = true;
-        return this.exports;
+            this.loadingPromise.finally(() => { this.loadingPromise = null; });
+        }
+
+        return await this.loadingPromise;
     } // Module#load
 
 }).defineType("Script", class Script {
