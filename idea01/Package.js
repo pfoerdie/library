@@ -17,8 +17,6 @@ class Package extends _package.Config {
             depth: config.depth
         });
 
-        this.value = {};
-
     } // constructor
 
     async load() {
@@ -27,6 +25,8 @@ class Package extends _package.Config {
         const loadPromise = super.load();
 
         const { path, depth } = _private.get(this);
+        this.value = {};
+
         if (path) {
             const configArr = await loadDirectory(path, depth);
             const { configs } = _private.get(this);

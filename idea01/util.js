@@ -15,6 +15,7 @@ exports.validFile = extractFn(/^(?:config|module|package)\.json$/, "test");
 exports.validFolder = extractFn(/^(?!.|src$)/, "test");
 
 exports.isObject = (val) => typeof val === "object" && val !== null;
+exports.isArray = Array.isArray;
 exports.isInteger = (val) => val === parseInt(val);
 
 exports.define = (obj, key, value, get, set) => Object.defineProperty(obj, key, get || set ? { get, set } : { value });
