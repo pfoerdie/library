@@ -1,0 +1,21 @@
+{
+    "@context": "Library",
+    "@graph": [
+        {
+            "@type": "Module",
+            "@id": "lib.core.is:0.1.0",
+            "path": "./src/is_0.1.0.js",
+            "requires": []
+        },
+        {
+            "@type": "Alias",
+            "@id": "lib.core.is:latest",
+            "target": "lib.core.is:0.1.0"
+        },
+        {
+            "@type": "Alias",
+            "@id": "lib.core.is",
+            "target": "lib.core.is:latest"
+        }
+    ]
+}

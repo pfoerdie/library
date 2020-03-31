@@ -1,0 +1,21 @@
+{
+    "@context": "Library",
+    "@graph": [
+        {
+            "@type": "Module",
+            "@id": "lib.core.assert:0.1.0",
+            "path": "./src/assert_0.1.0.js",
+            "requires": []
+        },
+        {
+            "@type": "Alias",
+            "@id": "lib.core.assert:latest",
+            "target": "lib.core.assert:0.1.0"
+        },
+        {
+            "@type": "Alias",
+            "@id": "lib.core.assert",
+            "target": "lib.core.assert:latest"
+        }
+    ]
+}

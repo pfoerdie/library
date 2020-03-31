@@ -1,0 +1,18 @@
+{
+    "@context": "Library",
+    "@graph": [
+        {
+            "@type": "Package",
+            "@id": "lib.core"
+        },
+        {
+            "@type": "Alias",
+            "@id": "lib.core:basic",
+            "target": "lib.core",
+            "requires": [
+                "lib.core.is",
+                "lib.core.assert"
+            ]
+        }
+    ]
+}

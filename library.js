@@ -291,8 +291,11 @@ Library.defineType("Package", class Package {
         this.id = config['@id'];
         if (config['@id'] === config['target'] && !Library._regexID.test(config['target']))
             throw new TypeError("invalid config.target");
+        if (config['requires'] && !(Array.isArray(config['requires']) && config['requires'].every(id => Library._regexID.test(id))))
+            throw new TypeError("invalid config.requires");
         this.loaded = false;
         this.target = config['target'];
+        this.requires = config['requires'] || [];
         _integrate(this);
     } // Alias#constructor
 
@@ -304,6 +307,13 @@ Library.defineType("Package", class Package {
             ? target.exports
             : await target.load();
         if (!target.loaded) return null;
+        let _dependencies = await Promise.all(this.requires.map(id => Library.loadEntry(id)));
+        if (!_dependencies.every(val => val))
+            throw new Error("dependencies not complete");
+
+        await Promise.all(_dependencies.filter(val => !val.loaded).map(val => val.load()));
+        if (!_dependencies.every(val => val.loaded))
+            throw new Error("dependencies not loaded");
         this.loaded = true;
         this.exports = moduleExport;
         return this.exports;
