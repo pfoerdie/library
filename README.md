@@ -1,3 +1,3 @@
-# pfoerdie/library
+# @pfoerdie/library
 
 Try the test.js
